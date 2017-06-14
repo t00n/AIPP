@@ -1,0 +1,95 @@
+; FRON documentation
+; #############
+
+(load "fron")
+(def-ontology framenet-ontology)
+
+; def-class
+; #############
+; A class has a label, a set of roles and frames that will be evoked (also called definition)
+
+; Examples:
+
+; Label only:
+(def-class substance)
+
+; Label and role:
+(def-class container (container-volume))
+
+; Label, role and definition:
+(def-class tube (tube-size)
+    (a container ?self))
+
+; Label, roles with definition:
+(def-class quantity
+    ((quantity-container (a container))
+     (quantity-substance (a substance))
+     (quantity-volume (a volume))))
+
+(def-class Falcon
+    (a container ?self))
+
+; Label, definition with roles:
+(def-class 50mL-Falcon ()
+     (a Falcon ?self)
+     (a quantity 
+        (quantity-container ?self)
+        (quantity-volume 50mL)
+        (quantity-substance saliva)))
+
+
+; def-object
+; #############
+; For defining individual objects. An object definition has a label and a number of evoking frames (classes).
+
+; Syntax:
+; (def-object label (a this ?self) ... (a that))
+
+; Examples:
+(def-object pipette
+    (a container ?self))
+(def-object proteinase
+    (a substance ?self))
+
+; def-event
+; #############
+; An event has a label, roles, frames that will be evoked (like def-class), as well as states and actions. The syntax is different from def-object and def-class because keywords are used.
+
+; Example:
+(def-event add-proteinase
+    :roles 
+    ((add-proteinase-pipette ?pipette)
+     (add-proteinase-container ?container))
+    :evokes
+    ((a pipette ?pipette)
+     (a 50mL-Falcon ?container))
+    :states 
+    ((pipette-has-proteinase
+      (a quantity (quantity-container ?pipette)
+         (quantity-substance proteinase)))
+     (container-has-proteinase
+      (a quantity (quantity-container ?container)
+         (quantity-substance proteinase))))
+     :actions
+    ((add-proteinase-fill
+      (:action
+        (a suction (suction-pipette ?pipette)
+           (suction-substance proteinase)))
+      (:begin pipette-has-proteinase))
+     (add-proteinase-dispense
+      (:require pipette-has-proteinase)
+      (:action
+        (a release (release-from ?pipette)
+           (release-to ?container)))
+      (:begin container-has-proteinase)
+      (:end pipette-has-proteinase)
+      )))
+
+
+
+(progn
+  (def-world-model proteinase-world)
+  (instantiate pipette)
+  (instantiate proteinase)
+  (instantiate-event add-proteinase)
+  (print-world-model))
